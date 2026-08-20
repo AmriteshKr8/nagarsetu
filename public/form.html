@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>NagarSetu - Register Complaint</title>
+
+    <link rel="stylesheet" href="/res/stylesheets/styles.css" />
+
+    <link rel="stylesheet" href="/res/stylesheets/forma.css" />
+  </head>
+
+  <body>
+    <main>
+      <div class="card complaint-card">
+        <h1>NagarSetu</h1>
+
+        <p>Register a municipal complaint</p>
+
+        <form id="complaintForm">
+          <!-- =========================
+             IMAGES
+        ========================== -->
+
+          <div class="form-field">
+            <label for="images">
+              Photos
+              <span class="required">*</span>
+            </label>
+
+            <input
+              type="file"
+              id="images"
+              name="images"
+              accept="image/*"
+              capture="environment"
+              multiple
+              required
+            />
+
+            <div class="field-help">Add 1 to 3 photos</div>
+
+            <div id="imagePreview" class="image-preview"></div>
+          </div>
+
+          <!-- =========================
+             LOCATION
+        ========================== -->
+
+          <div class="form-field">
+            <label for="location"> Location details </label>
+
+            <div class="location-row">
+              <input
+                type="text"
+                id="location"
+                name="location"
+                placeholder="Landmark, road name, etc."
+              />
+
+              <button type="button" id="gpsBtn">Use GPS</button>
+            </div>
+
+            <div id="gpsInfo" class="field-help">GPS location is optional.</div>
+          </div>
+
+          <!-- =========================
+             ISSUE TITLE
+        ========================== -->
+
+          <div class="form-field">
+            <label for="issueTitle"> Issue title </label>
+
+            <input
+              type="text"
+              id="issueTitle"
+              name="issue-title"
+              placeholder="e.g. Garbage not collected"
+            />
+          </div>
+
+          <!-- =========================
+             ISSUE DESCRIPTION
+        ========================== -->
+
+          <div class="form-field">
+            <label for="issueDescription"> Issue description </label>
+
+            <textarea
+              id="issueDescription"
+              name="issue-description"
+              placeholder="Describe the problem..."
+            ></textarea>
+          </div>
+
+          <div class="divider">OR</div>
+
+          <!-- =========================
+             VOICE NOTE
+        ========================== -->
+
+          <div class="form-field">
+            <label> Voice note </label>
+
+            <div class="field-help">
+              If you don't want to type the complaint, simply record it here.
+            </div>
+
+            <div class="record-controls">
+              <button type="button" id="recordBtn" class="record-btn">
+                Start recording
+              </button>
+
+              <button type="button" id="stopBtn" class="secondary" disabled>
+                Stop
+              </button>
+            </div>
+
+            <div id="recordStatus" class="field-help">
+              No voice note recorded.
+            </div>
+
+            <audio id="audioPlayer" controls hidden></audio>
+          </div>
+
+          <!-- =========================
+             SUBMIT
+        ========================== -->
+
+          <button type="submit" id="submitBtn" class="primary submit-btn">
+            Submit Complaint
+          </button>
+        </form>
+      </div>
+    </main>
+
+    <!-- Popup container -->
+    <div id="popup-container"></div>
+
+    <!-- ES module -->
+    <script type="module" src="/scripts/form.js"></script>
+  </body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>InvMan – Request Password Reset</title>
+  <link rel="stylesheet" href="res/stylesheets/forma.css">
+  <link rel="stylesheet" href="res/stylesheets/popup.css">
+  <script src="scripts/request-reset.js" type="module"></script>
+</head>
+<body>
+
+<header class="center">
+  <h1>InvMan</h1>
+</header>
+
+<main>
+  <section class="card">
+    <h2 class="center">Forgot your password?</h2>
+    <p class="center">
+      Enter your email to receive a reset link.
+    </p>
+
+    <form>
+      <div>
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="you@example.com" required />
+      </div>
+
+      <button type="submit" id="submit" class="primary">
+        Send Reset Link
+      </button>
+
+      <p class="trust center">
+        Remembered your password?
+        <a href="login.html">Sign in</a>
+      </p>
+    </form>
+  </section>
+</main>
+
+<footer class="center">
+  <p>© 2024 InvMan Inc.</p>
+</footer>
+<div id="popup-container"></div>
+</body>
+</html>

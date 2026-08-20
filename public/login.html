@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>InvMan – Sign In</title>
+    <link rel="stylesheet" href="res/stylesheets/forma.css" />
+    <link rel="stylesheet" href="res/stylesheets/popup.css" />
+    <script src="scripts/login.js" type="module"></script>
+  </head>
+  <body>
+    <header class="center">
+      <h1>InvMan</h1>
+    </header>
+
+    <main class="auth-wrapper">
+      <section class="card auth-card">
+        <h2 class="center">Sign in</h2>
+        <p class="center">Access your inventory dashboard securely.</p>
+
+        <form>
+          <div>
+            <label for="loginId">Username or Email</label>
+            <input
+              id="loginId"
+              type="text"
+              placeholder="username or email"
+              autocomplete="username"
+            />
+          </div>
+
+          <div>
+            <label for="loginPassword">Password</label>
+            <input
+              id="loginPassword"
+              type="password"
+              placeholder="••••••••"
+              autocomplete="current-password"
+            />
+          </div>
+
+          <button type="button" id="submit" class="primary">Sign In</button>
+
+          <p class="trust center">
+            <a href="request-reset.html">Forgot password?</a>
+          </p>
+
+          <p class="trust center">
+            New to InvMan?
+            <a href="signup.html">Create an account</a>
+          </p>
+        </form>
+      </section>
+    </main>
+
+    <footer class="center">
+      <p>© 2024 InvMan Inc.</p>
+    </footer>
+    <div id="popup-container"></div>
+  </body>
+</html>
