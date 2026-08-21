@@ -2,22 +2,22 @@
 import React, { useEffect, useRef, useState } from "react";
 
 const INDIAN_LANGUAGES = [
+  { code: "en-IN", label: "English (India)" },
   { code: "hi-IN", label: "Hindi (हिन्दी)" },
   { code: "or-IN", label: "Odia (ଓଡ଼ିଆ)" },
-  { code: "bn-IN", label: "Bengali (বাংলা)" },
-  { code: "ta-IN", label: "Tamil (தமிழ்)" },
   { code: "te-IN", label: "Telugu (తెలుగు)" },
+  { code: "ta-IN", label: "Tamil (தமிழ்)" },
+  { code: "bn-IN", label: "Bengali (বাংলা)" },
   { code: "mr-IN", label: "Marathi (मराठी)" },
   { code: "gu-IN", label: "Gujarati (ગુજરાતી)" },
   { code: "kn-IN", label: "Kannada (കന്നഡ)" },
   { code: "ml-IN", label: "Malayalam (മലയാളം)" },
   { code: "pa-IN", label: "Punjabi (ਪੰਜਾਬੀ)" },
-  { code: "en-IN", label: "English (India)" },
 ];
 
 export default function ImageDescription({ onSubmitData }) {
   const [description, setDescription] = useState("");
-  const [selectedLang, setSelectedLang] = useState("hi-IN");
+  const [selectedLang, setSelectedLang] = useState("en-IN");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -133,8 +133,8 @@ export default function ImageDescription({ onSubmitData }) {
   return (
     <div className="w-full max-w-2xl mx-auto space-y-4">
       {/* Header & Language Dropdown */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-gray-900">Description of the Issue</h2>
+      <div className="flex items-center justify-around gap-4">
+        <h2 className="text-base font-semibold text-gray-900">Issue Description</h2>
 
         <div className="flex items-center gap-2">
           <label htmlFor="language" className="text-xs text-gray-500 font-medium">

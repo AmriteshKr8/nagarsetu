@@ -8,6 +8,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 export default function Form() {
   const [locationData, setLocationData] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   // Callback to capture extracted metadata and image file from Image.jsx
   const handleLocationExtracted = (data) => {
@@ -53,7 +54,7 @@ export default function Form() {
       }
 
       console.log("Form Submitted Successfully:", result);
-      alert("Report submitted successfully!");
+      setIsSubmitted(true);
     } catch (error) {
       console.error("Submission error:", error);
       alert(error.message || "Unable to submit report.");
@@ -61,6 +62,34 @@ export default function Form() {
       setIsSubmitting(false);
     }
   };
+
+  if (isSubmitted) {
+    return (
+      <div className="mx-auto max-w-2xl rounded-3xl bg-white p-12 shadow-md border border-gray-100 flex flex-col items-start justify-center min-h-[300px] space-y-4">
+        <div className="flex items-center space-x-4">
+          {/* Checkmark Icon */}
+          <div className="flex items-center justify-center w-12 h-12 rounded-full border-2 border-emerald-600 text-emerald-600">
+            <svg
+              className="w-6 h-6 stroke-current"
+              fill="none"
+              strokeWidth="2.5"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+          <h1 className="text-4xl font-light text-gray-800">Thanks!</h1>
+        </div>
+        <p className="text-gray-600 text-lg pl-1">
+          Your response was submitted.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 rounded-3xl bg-white p-6 shadow-md border border-gray-100">
