@@ -12,8 +12,6 @@ const gpsBtn = document.getElementById("gpsBtn");
 
 const gpsInfo = document.getElementById("gpsInfo");
 
-const issueTitle = document.getElementById("issueTitle");
-
 const issueDescription = document.getElementById("issueDescription");
 
 const recordBtn = document.getElementById("recordBtn");
@@ -26,9 +24,9 @@ const audioPlayer = document.getElementById("audioPlayer");
 
 const submitBtn = document.getElementById("submitBtn");
 
-/*
- * GPS
- */
+// ======================================================
+// GPS
+// ======================================================
 
 let latitude = null;
 let longitude = null;
@@ -61,6 +59,10 @@ gpsBtn.addEventListener("click", () => {
     },
 
     (error) => {
+      latitude = null;
+      longitude = null;
+      accuracy = null;
+
       gpsBtn.disabled = false;
 
       gpsInfo.textContent = "GPS location could not be obtained.";
@@ -76,9 +78,9 @@ gpsBtn.addEventListener("click", () => {
   );
 });
 
-/*
- * Image selection
- */
+// ======================================================
+// IMAGE SELECTION
+// ======================================================
 
 imagesInput.addEventListener("change", () => {
   const files = Array.from(imagesInput.files);
@@ -91,6 +93,8 @@ imagesInput.addEventListener("change", () => {
 
   if (files.length > 3) {
     imagesInput.value = "";
+
+    imagePreview.innerHTML = "";
 
     showPopup("You can upload a maximum of 3 images.", true);
 
@@ -118,9 +122,9 @@ imagesInput.addEventListener("change", () => {
   }
 });
 
-/*
- * Audio recording
- */
+// ======================================================
+// AUDIO RECORDING
+// ======================================================
 
 let mediaRecorder = null;
 
@@ -195,16 +199,16 @@ stopBtn.addEventListener("click", () => {
   recordBtn.classList.remove("recording");
 });
 
-/*
- * Form submission
- */
+// ======================================================
+// FORM SUBMISSION
+// ======================================================
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  /*
-   * Validate images
-   */
+  // ==============================================
+  // Validate images
+  // ==============================================
 
   const images = Array.from(imagesInput.files);
 
@@ -214,39 +218,32 @@ form.addEventListener("submit", async (event) => {
     return;
   }
 
-  /*
-   * Validate location
-   *
-   * At least one of:
-   * - written location
-   * - GPS coordinates
-   */
+  // ==============================================
+  // Validate GPS
+  //
+  // GPS IS REQUIRED.
+  //
+  // Human-readable location text is optional.
+  // ==============================================
 
-  const writtenLocation = locationInput.value.trim();
+  const hasGPS = latitude !== null && longitude !== null && accuracy !== null;
 
-  const hasGPS = latitude !== null && longitude !== null;
-
-  if (!writtenLocation && !hasGPS) {
-    showPopup(
-      "Please enter a location or use GPS to capture your location.",
-      true,
-    );
+  if (!hasGPS) {
+    showPopup("Please capture your GPS location before submitting.", true);
 
     return;
   }
 
-  /*
-   * Validate text / voice
-   *
-   * Voice is required only when
-   * BOTH title and description are empty.
-   */
-
-  const title = issueTitle.value.trim();
+  // ==============================================
+  // Validate text / voice
+  //
+  // Voice is required only when the
+  // description is empty.
+  // ==============================================
 
   const description = issueDescription.value.trim();
 
-  const hasText = title.length > 0 || description.length > 0;
+  const hasText = description.length > 0;
 
   const hasVoice = audioBlob !== null;
 
@@ -256,92 +253,76 @@ form.addEventListener("submit", async (event) => {
     return;
   }
 
-  /*
-   * Prevent double submission
-   */
+  // ==============================================
+  // Prevent double submission
+  // ==============================================
 
   submitBtn.disabled = true;
 
   submitBtn.textContent = "Submitting...";
 
-  /*
-   * Build multipart/form-data
-   */
+  // ==============================================
+  // Build multipart/form-data
+  // ==============================================
 
   const formData = new FormData();
 
-  /*
-   * Images
-   *
-   * IMPORTANT:
-   * Backend expects:
-   *
-   * req.files.images
-   *
-   * therefore every image uses
-   * the field name "images".
-   */
+  // ==============================================
+  // Images
+  // ==============================================
 
   for (const image of images) {
     formData.append("images", image, image.name);
   }
 
-  /*
-   * Location text
-   */
+  // ==============================================
+  // Written location
+  //
+  // OPTIONAL
+  // ==============================================
 
-  if (locationInput.value.trim()) {
-    formData.append("location", locationInput.value.trim());
+  const writtenLocation = locationInput.value.trim();
+
+  if (writtenLocation) {
+    formData.append("location", writtenLocation);
   }
 
-  /*
-   * GPS
-   *
-   * Completely optional.
-   */
+  // ==============================================
+  // GPS
+  //
+  // REQUIRED
+  // ==============================================
 
-  if (latitude !== null) {
-    formData.append("latitude", latitude);
+  formData.append("latitude", latitude);
 
-    formData.append("longitude", longitude);
+  formData.append("longitude", longitude);
 
-    formData.append("accuracy", accuracy);
-  }
+  formData.append("accuracy", accuracy);
 
-  /*
-   * Issue title
-   */
-
-  if (title) {
-    formData.append("issue-title", title);
-  }
-
-  /*
-   * Issue description
-   */
+  // ==============================================
+  // Issue description
+  // ==============================================
 
   if (description) {
     formData.append("issue-description", description);
   }
 
-  /*
-   * Voice note
-   */
+  // ==============================================
+  // Voice note
+  // ==============================================
 
   if (audioBlob) {
     formData.append("voice-note", audioBlob, "voice-note.webm");
   }
 
-  try {
-    /*
-     * Same-origin request.
-     *
-     * If your Node server is serving
-     * this HTML, this is all you need.
-     */
+  // ==============================================
+  // Send request
+  // ==============================================
 
+  try {
     const response = await fetch("/api/complaints", {
       method: "POST",
+
       body: formData,
     });
 
@@ -363,9 +344,9 @@ form.addEventListener("submit", async (event) => {
 
     showPopup("Complaint submitted successfully.");
 
-    /*
-     * Reset form after successful submission.
-     */
+    // ==========================================
+    // Reset form
+    // ==========================================
 
     form.reset();
 
@@ -377,7 +358,7 @@ form.addEventListener("submit", async (event) => {
 
     recordStatus.textContent = "No voice note recorded.";
 
-    gpsInfo.textContent = "GPS location is optional.";
+    gpsInfo.textContent = "GPS location is required.";
 
     latitude = null;
     longitude = null;
