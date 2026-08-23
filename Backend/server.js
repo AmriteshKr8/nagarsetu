@@ -69,6 +69,25 @@ const uploadToCloudinary = (fileBuffer, folder, resourceType = "auto") => {
   });
 };
 
+// Helper function: Calculate distance in meters using Haversine formula
+function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // Earth's radius in meters
+  const toRad = (angle) => (angle * Math.PI) / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const lat1Rad = toRad(lat1);
+  const lat2Rad = toRad(lat2);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1Rad) * Math.cos(lat2Rad);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in meters
+}
+
 // 3. Configure Multer memory storage
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -113,8 +132,10 @@ app.post("/api/complaints", upload.fields([
       description: req.body.description || "",
       language: req.body.language || "",
       submittedAt: req.body.submittedAt || new Date().toISOString(),
-      latitude: req.body.latitude || "",
-      longitude: req.body.longitude || "",
+      location: {
+        latitude: req.body.latitude || "",
+        longitude: req.body.longitude || "",
+      },
       media: {
           imageUrl: imageUrl,
           voiceNoteUrl: voiceNoteUrl,
@@ -192,27 +213,83 @@ app.post("/api/complaints", upload.fields([
     
           // Save using MongoDB native driver through Mongoose connection
           const db = mongoose.connection.db;
-          const result = await db.collection(targetCollection).insertOne(documentToSave);
+          const collection = db.collection(targetCollection);
 
-    // F. Return Response
-    return res.status(200).json({
-      success: true,
-      message: `Complaint processed and stored in '${targetCollection}' collection successfully.`,
-      data: {
-        _id: result.insertedId,
-        ...documentToSave
+      // Parse incoming coordinates
+      const newLat = parseFloat(originalUserData.location.latitude);
+      const newLon = parseFloat(originalUserData.location.longitude);
+
+      let matchedDocumentId = null;
+
+      // Ensure valid numbers were passed before running geographical calculations
+      if (!isNaN(newLat) && !isNaN(newLon)) {
+        // Fetch existing records from the collection that have valid locations
+        const existingComplaints = await collection
+          .find({
+            "originalData.location.latitude": { $exists: true, $ne: "" },
+            "originalData.location.longitude": { $exists: true, $ne: "" },
+          })
+          .toArray();
+
+        // Loop through existing items and check if distance <= 10 meters
+        for (const existingDoc of existingComplaints) {
+          const exLat = parseFloat(existingDoc.originalData?.location?.latitude);
+          const exLon = parseFloat(existingDoc.originalData?.location?.longitude);
+
+          if (!isNaN(exLat) && !isNaN(exLon)) {
+            const distance = calculateHaversineDistance(newLat, newLon, exLat, exLon);
+            if (distance <= 10) {
+              matchedDocumentId = existingDoc._id;
+              break; // Stop loop on first matching nearby complaint
+            }
+          }
+        }
       }
-    });
 
-  } catch (error) {
-    console.error("Error processing request:", error?.response?.data || error.message);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error while processing complaint.",
-      error: error.message,
-    });
+      // --- CONDITIONAL UPDATE OR INSERT ---
+      if (matchedDocumentId) {
+        // Option A: Increment priority of existing duplicate issue within 10 meters
+        await collection.updateOne(
+          { _id: matchedDocumentId },
+          {
+            $inc: { "agentOutput.priority": 1 },
+            $set: { updatedAt: new Date() },
+          }
+        );
+        
+        return res.status(200).json({
+          success: true,
+          message: `Nearby complaint within 10m found in '${targetCollection}'. Incremented priority by 1.`,
+          data: {
+            updatedComplaintId: matchedDocumentId,
+            action: "PRIORITY_INCREMENTED",
+          },
+        });
+      } else {
+        // Option B: No match within 10 meters - Insert new document normally
+        const result = await collection.insertOne(documentToSave);
+
+        // F. Return Response
+        return res.status(200).json({
+          success: true,
+          message: `Complaint processed and stored in '${targetCollection}' collection successfully.`,
+          data: {
+            _id: result.insertedId,
+            ...documentToSave,
+            action: "NEW_COMPLAINT_CREATED",
+          },
+        });
+      } // Closes the 'else' block ONLY
+    } catch (error) {
+      console.error("Error processing request:", error?.response?.data || error.message);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error while processing complaint.",
+        error: error.message,
+      });
+    }
   }
-});
+);
 
 // Start the Express server
 const PORT = process.env.PORT || 5000;

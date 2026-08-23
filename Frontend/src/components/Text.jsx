@@ -133,7 +133,7 @@ export default function ImageDescription({ onSubmitData }) {
   return (
     <div className="w-full max-w-2xl mx-auto space-y-4">
       {/* Header & Language Dropdown */}
-      <div className="flex items-center justify-around gap-4">
+      <div className="flex items-center justify-between gap-4">
         <h2 className="text-base font-semibold text-gray-900">Issue Description</h2>
 
         <div className="flex items-center gap-2">
