@@ -1,72 +1,94 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>InvMan – Create Account</title>
+    <link rel="stylesheet" href="res/stylesheets/forma.css" />
+    <link rel="stylesheet" href="res/stylesheets/popup.css" />
+    <script src="scripts/signup.js" type="module"></script>
+  </head>
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>InvMan – Create Account</title>
-  <link rel="stylesheet" href="res/stylesheets/forma.css">
-  <link rel="stylesheet" href="res/stylesheets/popup.css">
-  <script src="scripts/signup.js" type="module"></script>
-</head>
+  <body>
+    <header class="center">
+      <h1>InvMan</h1>
+    </header>
 
-<body>
-
-  <header class="center">
-    <h1>InvMan</h1>
-  </header>
-
-  <main class="auth-wrapper">
-    <section class="card auth-card">
-
-      <h2 class="center">Create your account</h2>
-      <p class="center">
-        Join a secure marketplace trusted by growing businesses.
-      </p>
-
-      <form>
-        <div>
-          <label for="username">Username</label>
-          <input id="username" type="text" placeholder="Username" autocomplete="username" />
-        </div>
-
-        <div>
-          <label for="email">Email address</label>
-          <input id="email" type="email" placeholder="name@company.com" autocomplete="email" />
-        </div>
-
-        <div>
-          <label for="password">Password</label>
-          <input id="password" type="password" placeholder="Minimum 8 characters" autocomplete="new-password" />
-        </div>
-
-        <div>
-          <label for="confirmPassword">Confirm password</label>
-          <input id="confirmPassword" type="password" placeholder="Repeat password" autocomplete="new-password" />
-        </div>
-
-        <label class="trust">
-          <input id="tos" type="checkbox" />
-          I agree to the Terms of Service and Privacy Policy
-        </label>
-
-        <button type="button" id="submit" class="primary">
-          Create Account
-        </button>
-
-        <p class="trust center">
-          Already have an account?
-          <a href="login.html">Sign in</a>
+    <main class="auth-wrapper">
+      <section class="card auth-card">
+        <h2 class="center">Create your account</h2>
+        <p class="center">
+          Join a secure marketplace trusted by growing businesses.
         </p>
-      </form>
 
-    </section>
-  </main>
+        <form>
+          <div>
+            <label for="username">Username</label>
+            <input
+              id="username"
+              type="text"
+              placeholder="Username"
+              autocomplete="username"
+            />
+          </div>
 
-  <footer class="center">
-    <p>© 2024 InvMan Inc.</p>
-  </footer>
-  <div id="popup-container"></div>
-</body>
+          <div>
+            <label for="email">Email address</label>
+            <input
+              id="email"
+              type="email"
+              placeholder="name@company.com"
+              autocomplete="email"
+            />
+          </div>
 
+          <div>
+            <label for="department">Department</label>
+            <select id="department" required>
+              <option value="">Loading departments...</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              placeholder="Minimum 8 characters"
+              autocomplete="new-password"
+            />
+          </div>
+
+          <div>
+            <label for="confirmPassword">Confirm password</label>
+            <input
+              id="confirmPassword"
+              type="password"
+              placeholder="Repeat password"
+              autocomplete="new-password"
+            />
+          </div>
+
+          <label class="trust">
+            <input id="tos" type="checkbox" />
+            I agree to the Terms of Service and Privacy Policy
+          </label>
+
+          <button type="button" id="submit" class="primary">
+            Create Account
+          </button>
+
+          <p class="trust center">
+            Already have an account?
+            <a href="login.html">Sign in</a>
+          </p>
+        </form>
+      </section>
+    </main>
+
+    <footer class="center">
+      <p>© 2024 InvMan Inc.</p>
+    </footer>
+    <div id="popup-container"></div>
+  </body>
 </html>

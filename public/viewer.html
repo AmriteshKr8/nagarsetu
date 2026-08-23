@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>NagarSetu - Complaint Viewer</title>
+
+    <link rel="stylesheet" href="res/stylesheets/popup.css" />
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f4f6f8;
+        color: #222;
+      }
+
+      header {
+        background: #fff;
+        border-bottom: 1px solid #ddd;
+        padding: 20px;
+      }
+
+      header h1 {
+        margin: 0 0 15px;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      select,
+      input,
+      button {
+        padding: 9px 12px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+
+      button {
+        cursor: pointer;
+        background: #222;
+        color: white;
+        border: none;
+      }
+
+      button:hover {
+        opacity: 0.9;
+      }
+
+      main {
+        padding: 20px;
+        max-width: 1400px;
+        margin: auto;
+      }
+
+      #complaints {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+      }
+
+      .complaint {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #ddd;
+      }
+
+      .complaint-images {
+        display: flex;
+        overflow-x: auto;
+        height: 220px;
+        background: #eee;
+      }
+
+      .complaint-images img {
+        width: 100%;
+        min-width: 100%;
+        height: 220px;
+        object-fit: cover;
+      }
+
+      .complaint-content {
+        padding: 16px;
+      }
+
+      .complaint-content h3 {
+        margin-top: 0;
+      }
+
+      .meta {
+        font-size: 13px;
+        color: #666;
+        margin: 6px 0;
+      }
+
+      .description {
+        margin: 12px 0;
+        line-height: 1.5;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 5px;
+        background: #eee;
+        font-size: 12px;
+        margin-right: 5px;
+      }
+
+      .badge.review {
+        background: #ffe0e0;
+        color: #a00000;
+      }
+
+      .badge.solved {
+        background: #dff5df;
+        color: #187018;
+      }
+
+      .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        margin-top: 30px;
+      }
+
+      #loading,
+      #empty {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>Complaint Viewer</h1>
+
+      <div class="controls">
+        <select id="department">
+          <option value="">All departments</option>
+          <option value="firestation">Fire Station</option>
+          <option value="policestation">Police Station</option>
+          <option value="roads">Roads</option>
+          <option value="sanitation">Sanitation</option>
+          <option value="water">Water</option>
+          <option value="electricity">Electricity</option>
+          <option value="streetlights">Street Lights</option>
+          <option value="parks">Parks</option>
+          <option value="drainage">Drainage</option>
+          <option value="publichealth">Public Health</option>
+          <option value="other">Other</option>
+        </select>
+
+        <input type="date" id="startDate" />
+
+        <input type="date" id="endDate" />
+
+        <select id="sort">
+          <option value="latest">Latest</option>
+          <option value="oldest">Oldest</option>
+        </select>
+
+        <select id="count">
+          <option value="10">10 per page</option>
+          <option value="20" selected>20 per page</option>
+          <option value="50">50 per page</option>
+          <option value="100">100 per page</option>
+        </select>
+
+        <button id="filterButton">Apply</button>
+      </div>
+    </header>
+
+    <main>
+      <div id="loading">Loading complaints...</div>
+
+      <div id="empty" hidden>No complaints found.</div>
+
+      <div id="complaints"></div>
+
+      <div class="pagination">
+        <button id="previousButton">Previous</button>
+
+        <span id="pageInfo"> Page 1 </span>
+
+        <button id="nextButton">Next</button>
+      </div>
+    </main>
+
+    <script type="module" src="scripts/viewer.js"></script>
+  </body>
+</html>

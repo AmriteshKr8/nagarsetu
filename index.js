@@ -11,12 +11,14 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 const PORT = 3000;
 
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
 app.use("/", express.static("public"));
 
 fs.mkdirSync("uploads/images", {
@@ -26,6 +28,20 @@ fs.mkdirSync("uploads/images", {
 fs.mkdirSync("uploads/audio", {
   recursive: true,
 });
+
+const DEPARTMENTS = [
+  "firestation",
+  "policestation",
+  "roads",
+  "sanitation",
+  "water",
+  "electricity",
+  "streetlights",
+  "parks",
+  "drainage",
+  "publichealth",
+  "other",
+];
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -62,6 +78,81 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+async function requireAuth(req, res, next) {
+  try {
+    const token = req.cookies?.access_token;
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      issuer: "invman-api",
+      audience: "invman-client",
+    });
+
+    if (!decoded.sub) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid authentication token",
+      });
+    }
+
+    const user = await User.findById(decoded.sub)
+      .select("_id username enabled tokenVersion")
+      .lean();
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: "User no longer exists",
+      });
+    }
+
+    if (!user.enabled) {
+      return res.status(403).json({
+        success: false,
+        error: "Account is disabled",
+      });
+    }
+
+    if (
+      decoded.tokenVersion !== undefined &&
+      decoded.tokenVersion !== user.tokenVersion
+    ) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication token has been revoked",
+      });
+    }
+
+    req.user = user;
+
+    next();
+  } catch (error) {
+    if (
+      error.name === "TokenExpiredError" ||
+      error.name === "JsonWebTokenError" ||
+      error.name === "NotBeforeError"
+    ) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid or expired authentication token",
+      });
+    }
+
+    console.error("Authentication error:", error);
+
+    return res.status(500).json({
+      success: false,
+      error: "Authentication error",
+    });
+  }
+}
 
 function validate(req, res, next) {
   const errors = validationResult(req);
@@ -179,7 +270,7 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       minlength: 3,
-      maxlength: 20,
+      maxlength: 30,
       match: /^[a-zA-Z0-9_]+$/,
     },
 
@@ -381,7 +472,7 @@ export const PasswordReset = mongoose.model(
 );
 
 app.post("/signup", signupValidation, validate, async (req, res) => {
-  const { username, password, email } = req.body;
+  const { username, password, email, department } = req.body;
   const hash = await bcrypt.hash(password, 12);
 
   let user;
@@ -390,6 +481,7 @@ app.post("/signup", signupValidation, validate, async (req, res) => {
       username,
       password: hash,
       mail: email.toLowerCase(),
+      department: department.toLowerCase(),
       enabled: false,
     });
   } catch (err) {
@@ -401,6 +493,16 @@ app.post("/signup", signupValidation, validate, async (req, res) => {
 
   const token = crypto.randomBytes(32).toString("hex");
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  /*
+  if (!passwordRegex.test(password)) {
+    return res
+      .status(400)
+      .send(
+        "Password must contain 8+ chars, uppercase, lowercase, number, symbol",
+      );
+  }
+  */
 
   await EmailVerification.create({
     userId: user._id,
@@ -416,8 +518,12 @@ app.post("/signup", signupValidation, validate, async (req, res) => {
 });
 
 app.post("/login", loginValidation, validate, async (req, res) => {
-  const { loginId, password } = req.body;
+  const { loginId, password, department } = req.body;
   const login = loginId.includes("@") ? loginId.toLowerCase() : loginId;
+
+  if (!DEPARTMENTS.includes(department)) {
+    return res.status(400).send("Invalid department");
+  }
 
   const user = await User.findOne({
     $or: [{ username: login }, { mail: login }],
@@ -431,6 +537,10 @@ app.post("/login", loginValidation, validate, async (req, res) => {
     return res.status(403).send("Email not verified");
   }
 
+  if (user.department !== department) {
+    return res.status(403).send("Incorrect department");
+  }
+
   if (!(await bcrypt.compare(password, user.password))) {
     return res.status(401).send("Invalid credentials");
   }
@@ -439,6 +549,8 @@ app.post("/login", loginValidation, validate, async (req, res) => {
     {
       sub: user._id.toString(),
       username: user.username,
+      department: user.department,
+      tokenVersion: user.tokenVersion,
       iat: Math.floor(Date.now() / 1000),
       nbf: Math.floor(Date.now() / 1000),
     },
@@ -759,20 +871,6 @@ app.post(
   },
 );
 */
-
-const DEPARTMENTS = [
-  "firestation",
-  "policestation",
-  "roads",
-  "sanitation",
-  "water",
-  "electricity",
-  "streetlights",
-  "parks",
-  "drainage",
-  "publichealth",
-  "other",
-];
 
 const GEMINI_MODEL = "gemini-3.6-flash";
 
@@ -1379,6 +1477,206 @@ Return only the requested JSON.`,
     }
   },
 );
+
+app.post("/api/complaints/list", requireAuth, async (req, res) => {
+  try {
+    // ------------------------------------------
+    // Request parameters
+    // ------------------------------------------
+
+    const {
+      page = 1,
+      count = 20,
+      department,
+      startDate,
+      endDate,
+      sort = "latest",
+    } = req.body;
+
+    // ------------------------------------------
+    // Validate pagination
+    // ------------------------------------------
+
+    const pageNumber = Number(page);
+    const countNumber = Number(count);
+
+    if (!Number.isInteger(pageNumber) || pageNumber < 1) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid page",
+      });
+    }
+
+    if (
+      !Number.isInteger(countNumber) ||
+      countNumber < 1 ||
+      countNumber > 100
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "Count must be between 1 and 100",
+      });
+    }
+
+    // ------------------------------------------
+    // Validate department
+    // ------------------------------------------
+
+    const allowedDepartments = DEPARTMENTS;
+
+    if (
+      department !== undefined &&
+      department !== null &&
+      department !== "" &&
+      !allowedDepartments.includes(department)
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid department",
+      });
+    }
+
+    // ------------------------------------------
+    // Validate sort
+    // ------------------------------------------
+
+    const allowedSorts = ["latest", "oldest"];
+
+    if (!allowedSorts.includes(sort)) {
+      return res.status(400).json({
+        success: false,
+        error: "Sort must be either latest or oldest",
+      });
+    }
+
+    // ------------------------------------------
+    // Build MongoDB query
+    // ------------------------------------------
+
+    const query = {};
+
+    // Department filter
+
+    if (department) {
+      query.department = department;
+    }
+
+    // ------------------------------------------
+    // Date range
+    // ------------------------------------------
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+
+      if (startDate) {
+        const start = new Date(startDate);
+
+        if (Number.isNaN(start.getTime())) {
+          return res.status(400).json({
+            success: false,
+            error: "Invalid startDate",
+          });
+        }
+
+        // Beginning of the requested day
+        start.setHours(0, 0, 0, 0);
+
+        query.createdAt.$gte = start;
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+
+        if (Number.isNaN(end.getTime())) {
+          return res.status(400).json({
+            success: false,
+            error: "Invalid endDate",
+          });
+        }
+
+        // End of the requested day
+        end.setHours(23, 59, 59, 999);
+
+        query.createdAt.$lte = end;
+      }
+    }
+
+    // ------------------------------------------
+    // Pagination
+    // ------------------------------------------
+
+    const skip = (pageNumber - 1) * countNumber;
+
+    // ------------------------------------------
+    // Sorting
+    // ------------------------------------------
+
+    const sortOption = sort === "latest" ? { createdAt: -1 } : { createdAt: 1 };
+
+    // ------------------------------------------
+    // Query database
+    // ------------------------------------------
+
+    const [complaints, total] = await Promise.all([
+      Complaint.find(query)
+        .sort(sortOption)
+        .skip(skip)
+        .limit(countNumber)
+        .lean(),
+
+      Complaint.countDocuments(query),
+    ]);
+
+    // ------------------------------------------
+    // Pagination information
+    // ------------------------------------------
+
+    const totalPages = Math.ceil(total / countNumber);
+
+    // ------------------------------------------
+    // Response
+    // ------------------------------------------
+
+    return res.status(200).json({
+      success: true,
+
+      data: complaints,
+
+      pagination: {
+        page: pageNumber,
+        count: countNumber,
+        total,
+        totalPages,
+        hasNextPage: pageNumber < totalPages,
+        hasPreviousPage: pageNumber > 1,
+      },
+
+      filters: {
+        department: department || null,
+
+        startDate: startDate || null,
+
+        endDate: endDate || null,
+
+        sort,
+      },
+    });
+  } catch (error) {
+    console.error("Complaint listing error:", error);
+
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+
+app.get("/api/departments", (req, res) => {
+  return res.status(200).json({
+    success: true,
+    departments: DEPARTMENTS,
+  });
+});
 
 async function startServer() {
   try {
