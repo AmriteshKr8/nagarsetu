@@ -12,6 +12,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 
 dotenv.config();
 const PORT = 3000;
@@ -19,7 +20,13 @@ const PORT = 3000;
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+  }),
+);
 app.use("/", express.static("public"));
+app.use("/uploads", express.static("uploads"));
 
 fs.mkdirSync("uploads/images", {
   recursive: true,
@@ -675,204 +682,9 @@ app.get("/verify-email", async (req, res) => {
   res.send("Email verified successfully. You may now log in.");
 });
 
-/*
-app.post(
-  "/api/complaints",
-
-  upload.fields([
-    {
-      name: "images",
-      maxCount: 3,
-    },
-    {
-      name: "voice-note",
-      maxCount: 1,
-    },
-  ]),
-
-  async (req, res) => {
-    try {
-      // ------------------------------------------
-      // Files
-      // ------------------------------------------
-
-      const images = req.files?.images || [];
-
-      const voiceNote = req.files?.["voice-note"]?.[0];
-
-      // ------------------------------------------
-      // Form fields
-      // ------------------------------------------
-
-      const {
-        location,
-        latitude,
-        longitude,
-        accuracy,
-        ["issue-description"]: issueDescription,
-      } = req.body;
-
-      const description = issueDescription?.trim() || "";
-
-      // ------------------------------------------
-      // Images
-      // 1-3 required
-      // ------------------------------------------
-
-      if (images.length === 0) {
-        return res.status(400).json({
-          success: false,
-          error: "At least one image is required",
-        });
-      }
-
-      if (images.length > 3) {
-        return res.status(400).json({
-          success: false,
-          error: "Maximum 3 images allowed",
-        });
-      }
-
-      // ------------------------------------------
-      // Voice requirement
-      //
-      // Voice is required ONLY when both
-      // title and description are empty.
-      // ------------------------------------------
-
-      const hasText = description.length > 0;
-
-      const hasVoice = Boolean(voiceNote);
-
-      if (!hasText && !hasVoice) {
-        return res.status(400).json({
-          success: false,
-          error: "Provide an issue title/description or a voice note",
-        });
-      }
-
-      // ------------------------------------------
-      // Print form data
-      // ------------------------------------------
-
-      console.log("\n========================================");
-
-      console.log("        NEW NAGARSETU COMPLAINT");
-
-      console.log("========================================");
-
-      console.log("\nForm data:");
-
-      console.log({
-        location: location || null,
-
-        latitude: latitude || null,
-
-        longitude: longitude || null,
-
-        accuracy: accuracy || null,
-
-        issueDescription: description || null,
-      });
-
-      // ------------------------------------------
-      // Print images
-      // ------------------------------------------
-
-      console.log(`\nImages (${images.length}):`);
-
-      images.forEach((image, index) => {
-        console.log(`Image ${index + 1}:`, {
-          originalName: image.originalname,
-
-          filename: image.filename,
-
-          path: image.path,
-
-          mimetype: image.mimetype,
-
-          size: image.size,
-        });
-      });
-
-      // ------------------------------------------
-      // Print voice
-      // ------------------------------------------
-
-      if (voiceNote) {
-        console.log("\nVoice note:", {
-          originalName: voiceNote.originalname,
-
-          filename: voiceNote.filename,
-
-          path: voiceNote.path,
-
-          mimetype: voiceNote.mimetype,
-
-          size: voiceNote.size,
-        });
-      } else {
-        console.log("\nVoice note: none");
-      }
-
-      console.log("\n========================================\n");
-
-      // ------------------------------------------
-      // Response
-      // ------------------------------------------
-
-      res.status(201).json({
-        success: true,
-
-        message: "Complaint received",
-
-        data: {
-          location: location || null,
-
-          latitude: latitude || null,
-
-          longitude: longitude || null,
-
-          accuracy: accuracy || null,
-
-          issueDescription: description || null,
-
-          images: images.map((image) => ({
-            filename: image.filename,
-
-            path: image.path,
-
-            mimetype: image.mimetype,
-
-            size: image.size,
-          })),
-
-          voiceNote: voiceNote
-            ? {
-                filename: voiceNote.filename,
-
-                path: voiceNote.path,
-
-                mimetype: voiceNote.mimetype,
-
-                size: voiceNote.size,
-              }
-            : null,
-        },
-      });
-    } catch (error) {
-      console.error("Complaint processing error:", error);
-
-      res.status(500).json({
-        success: false,
-        error: "Internal server error",
-      });
-    }
-  },
-);
-*/
-
 const GEMINI_MODEL = "gemini-3.6-flash";
+
+/*
 
 app.post(
   "/api/complaints",
@@ -1017,7 +829,7 @@ app.post(
         );
 
         const sttResponse = await fetch(
-          "https://debbie.boston-broadnose.ts.net:5600/webhook-test/stt",
+          "https://debbie.boston-broadnose.ts.net:5600/webhook23/stt",
           {
             method: "POST",
             body: sttForm,
@@ -1478,7 +1290,356 @@ Return only the requested JSON.`,
   },
 );
 
-app.post("/api/complaints/list", requireAuth, async (req, res) => {
+*/
+
+app.post(
+  "/api/complaints",
+  upload.fields([
+    { name: "images", maxCount: 3 },
+    { name: "voice-note", maxCount: 1 },
+  ]),
+  async (req, res) => {
+    try {
+      // ------------------------------------------
+      // 1. Files & Inputs Extraction
+      // ------------------------------------------
+      const images = req.files?.images || [];
+      const voiceNote = req.files?.["voice-note"]?.[0];
+
+      const {
+        location,
+        latitude,
+        longitude,
+        accuracy,
+        ["issue-description"]: issueDescription,
+      } = req.body;
+
+      let description = issueDescription?.trim() || "";
+
+      // ------------------------------------------
+      // 2. Synchronous Validation
+      // ------------------------------------------
+      if (images.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: "At least one image is required",
+        });
+      }
+
+      if (images.length > 3) {
+        return res.status(400).json({
+          success: false,
+          error: "Maximum 3 images allowed",
+        });
+      }
+
+      if (
+        latitude === undefined ||
+        latitude === "" ||
+        longitude === undefined ||
+        longitude === "" ||
+        accuracy === undefined ||
+        accuracy === ""
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: "Latitude, longitude and accuracy are required",
+        });
+      }
+
+      const latitudeNumber = Number(latitude);
+      const longitudeNumber = Number(longitude);
+      const accuracyNumber = Number(accuracy);
+
+      if (
+        !Number.isFinite(latitudeNumber) ||
+        latitudeNumber < -90 ||
+        latitudeNumber > 90
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid latitude",
+        });
+      }
+
+      if (
+        !Number.isFinite(longitudeNumber) ||
+        longitudeNumber < -180 ||
+        longitudeNumber > 180
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid longitude",
+        });
+      }
+
+      if (!Number.isFinite(accuracyNumber) || accuracyNumber < 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid GPS accuracy",
+        });
+      }
+
+      const hasVoice = Boolean(voiceNote);
+
+      if (!description && !hasVoice) {
+        return res.status(400).json({
+          success: false,
+          error: "Provide an issue description or a voice note",
+        });
+      }
+
+      // ------------------------------------------
+      // 3. Create Initial MongoDB Record
+      // ------------------------------------------
+      const imagePaths = images.map((image) => image.path);
+      const voicePath = voiceNote ? voiceNote.path : null;
+
+      const complaint = await Complaint.create({
+        images: imagePaths,
+        voicepath: voicePath,
+        department: "other", // Default placeholder until AI finishes
+        location: location?.trim() || null,
+        latitude: latitudeNumber,
+        longitude: longitudeNumber,
+        accuracy: accuracyNumber,
+        issueDescription: description || null,
+        humanreview: true, // Default to true until verified
+        solved: false,
+      });
+
+      // ------------------------------------------
+      // 4. Send Immediate Response to User
+      // ------------------------------------------
+      res.status(202).json({
+        success: true,
+        message:
+          "Complaint submitted successfully. AI processing in background.",
+        data: {
+          id: complaint._id,
+          createdAt: complaint.createdAt,
+        },
+      });
+
+      // ------------------------------------------
+      // 5. Background AI Processing (Asynchronous)
+      // ------------------------------------------
+      processAiTaskInBackground(
+        complaint._id,
+        description,
+        voiceNote,
+        images,
+      ).catch((err) => console.error("Unhandled background error:", err));
+    } catch (error) {
+      console.error("Complaint processing error:", error);
+      if (!res.headersSent) {
+        return res.status(500).json({
+          success: false,
+          error: "Internal server error",
+        });
+      }
+    }
+  },
+);
+
+// --------------------------------------------------
+// Background Worker Function
+// --------------------------------------------------
+async function processAiTaskInBackground(
+  complaintId,
+  initialDescription,
+  voiceNote,
+  images,
+) {
+  let description = initialDescription;
+
+  // --- STT Handling ---
+  if (!description && voiceNote) {
+    try {
+      console.log(`[BG ${complaintId}] Processing voice note STT...`);
+      const sttForm = new FormData();
+      const voiceBuffer = await fs.promises.readFile(voiceNote.path);
+
+      sttForm.append(
+        "voice-note",
+        new Blob([voiceBuffer], {
+          type: voiceNote.mimetype || "audio/wav",
+        }),
+        voiceNote.originalname,
+      );
+
+      const sttResponse = await fetch(
+        "https://debbie.boston-broadnose.ts.net:5600/webhook23/stt",
+        {
+          method: "POST",
+          body: sttForm,
+        },
+      );
+
+      if (sttResponse.ok) {
+        const sttResult = await sttResponse.json();
+        description =
+          typeof sttResult.text === "string" ? sttResult.text.trim() : "";
+      } else {
+        console.error(
+          `[BG ${complaintId}] STT request failed:`,
+          await sttResponse.text(),
+        );
+      }
+    } catch (sttErr) {
+      console.error(`[BG ${complaintId}] STT error:`, sttErr);
+    }
+  }
+
+  // --- Gemini Processing ---
+  console.log(`[BG ${complaintId}] Processing Gemini validation...`);
+  const geminiParts = [
+    {
+      text: `You are an AI system processing a civic complaint.
+
+Complaint description:
+${description || "(No description provided)"}
+
+You have been given one or more images belonging to this complaint.
+
+Your tasks are:
+1. Determine whether the visible content of the image(s) is consistent with the complaint description.
+2. Determine which municipal department should handle the complaint.
+
+Available departments:
+${DEPARTMENTS.map((department) => `- ${department}`).join("\n")}
+
+Department selection rules:
+- firestation: Fires, smoke, fire hazards, fire emergencies, rescue situations handled by fire services.
+- policestation: Crime, theft, violence, suspicious activity, traffic violations, public safety issues requiring police.
+- roads: Potholes, damaged roads, broken pavement, road surfaces, damaged road infrastructure.
+- sanitation: Garbage, waste collection, overflowing garbage bins, illegal dumping, dirty public areas.
+- water: Water supply problems, leaking water pipes, contaminated water, broken water connections.
+- electricity: Electrical infrastructure, electrical poles, electrical wires, power infrastructure.
+- streetlights: Broken, damaged, or non-functional streetlights.
+- parks: Public parks, playgrounds, damaged park equipment, park maintenance.
+- drainage: Blocked drains, overflowing drains, sewage drainage, waterlogging caused by drainage problems.
+- publichealth: Public health, disease hazards, unhygienic conditions, public health infrastructure.
+- other: Use this when none of the available departments is appropriate.
+
+Important rules:
+- Select exactly ONE department from the provided list.
+- Do not invent a department.
+- Use the complaint description AND visible evidence from the images.
+- Only use evidence that is actually visible.
+- Do not assume something exists if it cannot be seen.
+- If the image is unrelated to the complaint, matched must be false.
+- If the image is too blurry, dark, obstructed, or otherwise insufficient to verify the complaint, matched must be false and confidence should be low.
+- Consider all supplied images together.
+- Keep the reason under 30 words.
+
+Return only the requested JSON.`,
+    },
+  ];
+
+  for (const image of images) {
+    try {
+      const imageBuffer = await fs.promises.readFile(image.path);
+      geminiParts.push({
+        inlineData: {
+          mimeType: image.mimetype || "image/jpeg",
+          data: imageBuffer.toString("base64"),
+        },
+      });
+    } catch (e) {
+      console.error(`[BG ${complaintId}] Failed reading image file:`, e);
+    }
+  }
+
+  let aiValidation = {
+    matched: null,
+    confidence: null,
+    reason: "Gemini validation service unavailable",
+    department: "other",
+    model: GEMINI_MODEL,
+  };
+
+  try {
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": process.env.GEMINI_API_KEY,
+        },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: geminiParts }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                matched: { type: "BOOLEAN" },
+                confidence: { type: "NUMBER" },
+                reason: { type: "STRING" },
+                department: { type: "STRING", enum: DEPARTMENTS },
+              },
+              required: ["matched", "confidence", "reason", "department"],
+            },
+          },
+        }),
+      },
+    );
+
+    if (geminiResponse.ok) {
+      const geminiData = await geminiResponse.json();
+      const responseText =
+        geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (responseText) {
+        const parsed = JSON.parse(responseText);
+        aiValidation = {
+          matched: Boolean(parsed.matched),
+          confidence: Number(parsed.confidence) || 0,
+          reason: String(parsed.reason).trim().slice(0, 500),
+          department: DEPARTMENTS.includes(parsed.department)
+            ? parsed.department
+            : "other",
+          model: GEMINI_MODEL,
+        };
+      }
+    }
+  } catch (err) {
+    console.error(`[BG ${complaintId}] Gemini processing error:`, err);
+  }
+
+  // --- Calculate decisions ---
+  const MATCH_THRESHOLD = 0.75;
+  const humanreview = !(
+    aiValidation.matched === true &&
+    aiValidation.confidence !== null &&
+    aiValidation.confidence >= MATCH_THRESHOLD
+  );
+
+  const finalDepartment = DEPARTMENTS.includes(aiValidation.department)
+    ? aiValidation.department
+    : "other";
+
+  // --- Update MongoDB Record ---
+  await Complaint.findByIdAndUpdate(complaintId, {
+    issueDescription: description || null,
+    department: finalDepartment,
+    humanreview,
+    aiValidation: {
+      matched: aiValidation.matched,
+      confidence: aiValidation.confidence,
+      reason: aiValidation.reason,
+      model: aiValidation.model,
+    },
+  });
+
+  console.log(
+    `[BG ${complaintId}] Background AI processing completed successfully.`,
+  );
+}
+
+app.post("/api/complaints/list", async (req, res) => {
+  // requireAuth, async (req, res) => {
   try {
     // ------------------------------------------
     // Request parameters
